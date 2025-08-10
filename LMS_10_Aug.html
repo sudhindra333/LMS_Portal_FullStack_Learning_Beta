@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Full-Stack LMS — Single File</title>
+<style>
+/* --------------- Basic Reset & Fonts --------------- */
+:root{
+  --student:#28c76f;
+  --teacher:#00a8ff;
+  --admin:#9b59b6;
+  --bg:#f6f9fc;
+  --card:#ffffff;
+  --muted:#6b7280;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;color:#0f1724;background:linear-gradient(135deg,#e6f7ff 0%, #fff 50%);min-height:100vh;}
+
+/* --------------- Header & Layout --------------- */
+.header{
+  padding:18px;display:flex;align-items:center;justify-content:space-between;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{
+  width:48px;height:48px;border-radius:10px;
+  background:linear-gradient(135deg,#ffb86b,#ff7ab6);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+.title{font-size:18px;font-weight:700;color:#062;letter-spacing:0.2px}
+
+/* --------------- Main Container --------------- */
+.container{max-width:1100px;margin:18px auto;padding:18px}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+
+/* --------------- Left panel (login/profile) --------------- */
+.left-card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 30px rgba(14,30,37,0.06)}
+.login-title{font-size:16px;margin-bottom:10px}
+.input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid #e6eef6}
+.btn{display:inline-block;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(90deg,#6ee7b7,#34d399);color:#012a13;font-weight:700}
+.small-btn{padding:8px 12px;border-radius:8px;border:none;background:#eef2ff;color:#1f2937;cursor:pointer}
+.role-pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#334155;margin-right:8px;font-size:13px}
+
+/* --------------- Right panel (dashboard) --------------- */
+.right-card{background:linear-gradient(180deg,#ffffff,#fbfdff);padding:18px;border-radius:12px;box-shadow:0 6px 30px rgba(14,30,37,0.06)}
+.row{display:flex;gap:12px;align-items:center}
+.card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 4px 18px rgba(2,6,23,0.04)}
+.menu{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.menu button{background:#f1f5f9;border:none;padding:10px 12px;border-radius:10px;cursor:pointer}
+.menu button.primary{background:linear-gradient(90deg,#60a5fa,#7c3aed);color:white}
+.stats{display:flex;gap:10px;align-items:center}
+.stat{padding:10px;border-radius:10px;min-width:120px;text-align:center}
+
+/* --------------- Lists, quiz, forms --------------- */
+.list{list-style:none;padding:0;margin:8px 0}
+.list li{padding:10px;border-radius:8px;border:1px dashed #e6eef6;margin-bottom:8px;background:#fff}
+.quiz-question{margin:10px 0}
+.option{display:block;padding:10px;border-radius:8px;border:1px solid #e6eef6;margin:6px 0;cursor:pointer}
+.option:hover{background:#f8fafc}
+
+/* --------------- Game board --------------- */
+.memory-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{background:#fff;border-radius:8px;padding:18px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;cursor:pointer;border:1px solid #eef2ff;user-select:none}
+
+/* --------------- Responsive --------------- */
+@media (max-width:900px){.grid{grid-template-columns:1fr;}.left-card{order:2}}
+.footer{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="brand">
+    <div class="logo">FS</div>
+    <div>
+      <div style="font-weight:800;font-size:18px">Full Stack LMS</div>
+      <div style="font-size:12px;color:#475569">Fun, gamified learning for Full Stack Development</div>
+    </div>
+  </div>
+  <div id="topRight" style="display:flex;gap:12px;align-items:center">
+    <!-- dynamic -->
+  </div>
+</div>
+
+<!-- Main -->
+<div class="container">
+  <div class="grid">
+    <!-- Left column: login / profile / quick actions -->
+    <div class="left-card" id="leftPanel">
+      <!-- Login -->
+      <div id="loginView">
+        <div class="login-title">Welcome! Choose role & login</div>
+        <div style="margin:8px 0">
+          <label class="role-pill">Student</label>
+          <label class="role-pill">Teacher</label>
+          <label class="role-pill">Admin</label>
+        </div>
+        <input id="inputName" class="input" placeholder="Your display name (e.g., Alice)" />
+        <select id="selectRole" class="input">
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+          <option value="admin">Admin</option>
+        </select>
+        <input id="inputPass" class="input" placeholder="Password (use demo '1234')" />
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn" onclick="handleLogin()">Enter LMS</button>
+          <button class="small-btn" onclick="prefillDemo()">Load Demo</button>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--muted)">
+          Demo credentials preloaded: <br>
+          <strong>student1/1234</strong>, <strong>teacher1/1234</strong>, <strong>admin/1234</strong>
+        </div>
+      </div>
+
+      <!-- Profile view -->
+      <div id="profileView" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div id="displayName" style="font-weight:800;font-size:16px">Name</div>
+            <div id="displayRole" style="color:var(--muted);font-size:13px">Role</div>
+          </div>
+          <div><button class="small-btn" onclick="logout()">Logout</button></div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="card" style="margin-bottom:10px">
+            <div style="font-size:13px;color:var(--muted)">XP</div>
+            <div id="xpBar" style="background:#eef2ff;border-radius:10px;padding:6px;margin-top:8px">
+              <div id="xpFill" style="width:0%;background:linear-gradient(90deg,#fde047,#fb7185);padding:8px;border-radius:8px;color:#022; font-weight:700">0 XP</div>
+            </div>
+            <div style="margin-top:8px;font-size:13px;color:var(--muted)">Badges:</div>
+            <div id="badges" style="margin-top:8px;display:flex;gap:8px"></div>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:700">Quick Actions</div>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="small-btn" onclick="openSection('study')">Study Materials</button>
+              <button class="small-btn" onclick="openSection('quiz')">Take Quiz</button>
+              <button class="small-btn" onclick="openSection('daily')">Daily Challenge</button>
+              <button class="small-btn" onclick="openSection('games')">Games</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column: dashboard content -->
+    <div class="right-card" id="rightPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div id="welcomeHeader" style="font-size:20px;font-weight:800">Welcome</div>
+          <div id="subHeader" style="color:var(--muted);font-size:13px">Start learning full stack development</div>
+        </div>
+        <div id="roleTheme" style="text-align:right">
+          <!-- role badges -->
+        </div>
+      </div>
+
+      <!-- Role-specific menus -->
+      <div id="studentMenu" style="display:none">
+        <div class="menu">
+          <button onclick="openSection('study')">📚 Study</button>
+          <button class="primary" onclick="openSection('quiz')">📝 Quiz</button>
+          <button onclick="openSection('daily')">🔥 Daily</button>
+          <button onclick="openSection('games')">🎮 Games</button>
+          <button onclick="openSection('leaderboard')">🏆 Leaderboard</button>
+        </div>
+      </div>
+
+      <div id="teacherMenu" style="display:none">
+        <div class="menu">
+          <button onclick="openSection('study')">Materials</button>
+          <button onclick="openSection('manageQuiz')">Manage Quiz</button>
+          <button onclick="openSection('scores')">Student Scores</button>
+        </div>
+      </div>
+
+      <div id="adminMenu" style="display:none">
+        <div class="menu">
+          <button onclick="openSection('users')">Manage Users</button>
+          <button onclick="openSection('export')">Export Data</button>
+          <button onclick="openSection('settings')">Settings</button>
+        </div>
+      </div>
+
+      <!-- Content area -->
+      <div id="contentArea" style="margin-top:12px">
+        <!-- default view -->
+        <div id="homeCard" class="card">
+          <h3>Get started</h3>
+          <p style="color:var(--muted);margin-top:6px">Select actions from the menu. Students can earn XP, badges and climb the leaderboard. Teachers can author quizzes and view student performance. Admin can manage users and export data.</p>
+        </div>
+
+        <!-- Study materials -->
+        <div id="section-study" class="card" style="display:none">
+          <h3>Study Materials</h3>
+          <div id="materialsList" style="margin-top:10px"></div>
+          <div style="margin-top:12px">
+            <div style="font-size:13px;color:var(--muted)">Teachers can add new resources:</div>
+            <div id="addMaterialForm" style="margin-top:8px;display:none">
+              <input id="matTitle" class="input" placeholder="Title"/>
+              <input id="matLink" class="input" placeholder="Link (URL)"/>
+              <button class="small-btn" onclick="saveMaterial()">Save Material</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiz main -->
+        <div id="section-quiz" class="card" style="display:none">
+          <h3>Quiz (Randomized)</h3>
+          <div id="quizContainer"></div>
+          <div style="margin-top:10px">
+            <button class="small-btn" onclick="startQuiz()">Start New Quiz</button>
+            <button class="small-btn" onclick="endQuiz()" style="display:none" id="endQuizBtn">End & Submit</button>
+          </div>
+        </div>
+
+        <!-- Daily challenge -->
+        <div id="section-daily" class="card" style="display:none">
+          <h3>Daily Challenge</h3>
+          <div id="dailyInfo" style="color:var(--muted);margin-bottom:10px"></div>
+          <div id="dailyContainer"></div>
+          <div style="margin-top:10px"><button class="small-btn" onclick="startDaily()">Start Daily Challenge</button></div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div id="section-leaderboard" class="card" style="display:none">
+          <h3>Leaderboard</h3>
+          <div id="leaderboardList" style="margin-top:8px"></div>
+        </div>
+
+        <!-- Manage Quiz (teacher) -->
+        <div id="section-manageQuiz" class="card" style="display:none">
+          <h3>Manage Quiz Questions</h3>
+          <div style="margin-top:8px">
+            <button class="small-btn" onclick="showAddQuestion()">Add New Question</button>
+            <div id="addQuestionForm" style="margin-top:8px;display:none">
+              <input id="qText" class="input" placeholder="Question text"/>
+              <input id="optA" class="input" placeholder="Option A"/>
+              <input id="optB" class="input" placeholder="Option B"/>
+              <input id="optC" class="input" placeholder="Option C (leave if T/F)"/>
+              <div style="margin:8px 0">
+                <label>Type: <select id="qType" class="input" style="width:200px">
+                  <option value="mcq">MCQ</option>
+                  <option value="tf">True/False</option>
+                </select></label>
+                <label>Correct Index: <input id="correctIdx" class="input" placeholder="0-based index" style="width:120px;display:inline-block"/></label>
+              </div>
+              <button class="small-btn" onclick="addQuestion()">Save Question</button>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div id="questionsList"></div>
+          </div>
+        </div>
+
+        <!-- Scores (teacher) -->
+        <div id="section-scores" class="card" style="display:none">
+          <h3>Student Scores</h3>
+          <div id="scoresList"></div>
+        </div>
+
+        <!-- Users (admin) -->
+        <div id="section-users" class="card" style="display:none">
+          <h3>Manage Users</h3>
+          <div style="margin-top:8px">
+            <input id="newUsrName" class="input" placeholder="username"/>
+            <select id="newUsrRole" class="input">
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="admin">Admin</option>
+            </select>
+            <input id="newUsrPass" class="input" placeholder="password"/>
+            <button class="small-btn" onclick="addUser()">Add User</button>
+          </div>
+          <div style="margin-top:12px" id="usersList"></div>
+        </div>
+
+        <!-- Export (admin) -->
+        <div id="section-export" class="card" style="display:none">
+          <h3>Export Data</h3>
+          <button class="small-btn" onclick="exportCSV()">Export Questions & Scores (CSV)</button>
+        </div>
+
+        <!-- Settings -->
+        <div id="section-settings" class="card" style="display:none">
+          <h3>Settings</h3>
+          <button class="small-btn" onclick="resetAll()">Reset All Data (demo)</button>
+          <p style="color:var(--muted);margin-top:8px">Reset will clear localStorage demo data but keep app logic intact.</p>
+        </div>
+
+        <!-- Games -->
+        <div id="section-games" class="card" style="display:none">
+          <h3>Games</h3>
+          <div style="margin:6px 0">
+            <button class="small-btn" onclick="openGame('memory')">Memory Match</button>
+            <button class="small-btn" onclick="openGame('codescramble')">Code Scramble</button>
+          </div>
+          <div id="gameArea" style="margin-top:12px"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Beta Version: Built for demo & teaching purpose only<strong> By Mr.Sudhindra Umarji Faculty CSE DEPT</strong> . Data persists in localStorage only; Tech used: html,css,JavaScript.</div>
+</div>
+
+<script>
+/* -------------------------
+   Full-Stack LMS Single File
+   -------------------------
+   Notes:
+   - Data stored in localStorage keys: lms_users, lms_questions, lms_daily, lms_materials, lms_scores, lms_state
+   - This version is intentionally readable. If you want obfuscation/minification, ask and I'll provide it.
+*/
+
+/* -------------------------
+   Utility helpers
+--------------------------*/
+function $(id){return document.getElementById(id)}
+function save(key,obj){localStorage.setItem(key,JSON.stringify(obj))}
+function load(key,def){try{return JSON.parse(localStorage.getItem(key))||def}catch(e){return def}}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+
+/* -------------------------
+   Demo initial data
+--------------------------*/
+const demoUsers = [
+  {id:uid(), username:"student1", password:"1234", role:"student", xp:40, badges:[], streak:0, lastDaily:null},
+  {id:uid(), username:"teacher1", password:"1234", role:"teacher", xp:0, badges:[]},
+  {id:uid(), username:"admin", password:"1234", role:"admin", xp:0, badges:[]}
+];
+
+const demoMaterials = [
+  {id:uid(), title:"Full Stack Basics (PDF)", link:"https://example.com/fullstack.pdf"},
+  {id:uid(), title:"React Notes (PDF)", link:"https://example.com/react-notes.pdf"},
+  {id:uid(), title:"DBMS Notes (PDF)", link:"https://example.com/dbms.pdf"},
+  {id:uid(), title:"Full-Stack Crash Course (YouTube)", link:"https://www.youtube.com/watch?v=3xH1mGQfQ70"},
+  {id:uid(), title:"React Crash Course (YouTube)", link:"https://www.youtube.com/watch?v=w7ejDZ8SWv8"}
+];
+
+// question bank (mix MCQ + T/F) - pool for normal quiz
+const demoQuestions = [
+  {id:uid(), q:"HTML stands for Hyper Text Markup Language.", opts:["True","False"], ans:0, type:"tf", tags:["HTML"]},
+  {id:uid(), q:"Which tag is used to create a hyperlink?", opts:["<a>","<link>","<href>"], ans:0, type:"mcq", tags:["HTML"]},
+  {id:uid(), q:"CSS property to change text color?", opts:["color","text-color","font-color"], ans:0, type:"mcq", tags:["CSS"]},
+  {id:uid(), q:"JavaScript is the same as Java.", opts:["True","False"], ans:1, type:"tf", tags:["JS"]},
+  {id:uid(), q:"Which method logs to console in JS?", opts:["console.log()","print()","echo()"], ans:0, type:"mcq", tags:["JS"]},
+  {id:uid(), q:"React is a JavaScript library for building user interfaces.", opts:["True","False"], ans:0, type:"tf", tags:["React"]},
+  {id:uid(), q:"In React, state is used to manage component data.", opts:["True","False"], ans:0, type:"tf", tags:["React"]},
+  {id:uid(), q:"Which HTML tag contains the metadata?", opts:["<meta>","<head>","<info>"], ans:0, type:"mcq", tags:["HTML"]},
+  {id:uid(), q:"Flexbox uses 'justify-content' to align items horizontally.", opts:["True","False"], ans:0, type:"tf", tags:["CSS"]},
+  {id:uid(), q:"Which symbol starts a CSS class selector?", opts:[".","#","$"], ans:0, type:"mcq", tags:["CSS"]},
+  {id:uid(), q:"Which keyword defines a JavaScript function?", opts:["function","def","fun"], ans:0, type:"mcq", tags:["JS"]},
+  {id:uid(), q:"React components can be functional or class-based.", opts:["True","False"], ans:0, type:"tf", tags:["React"]},
+  {id:uid(), q:"Which attribute adds inline CSS to an element?", opts:["style","css","class"], ans:0, type:"mcq", tags:["HTML","CSS"]},
+  {id:uid(), q:"LocalStorage stores data permanently until cleared.", opts:["True","False"], ans:0, type:"tf", tags:["JS"]},
+  {id:uid(), q:"Which HTML element plays audio?", opts:["<audio>","<sound>","<music>"], ans:0, type:"mcq", tags:["HTML"]},
+  {id:uid(), q:"CSS grid is a layout system for two-dimensional layouts.", opts:["True","False"], ans:0, type:"tf", tags:["CSS"]},
+  {id:uid(), q:"Which method adds an item to end of array in JS?", opts:["push","append","add"], ans:0, type:"mcq", tags:["JS"]},
+  {id:uid(), q:"JS '===' checks strict equality including type.", opts:["True","False"], ans:0, type:"tf", tags:["JS"]},
+  {id:uid(), q:"In React, props are read-only.", opts:["True","False"], ans:0, type:"tf", tags:["React"]},
+  {id:uid(), q:"Which tag creates an ordered list?", opts:["<ol>","<ul>","<li>"], ans:0, type:"mcq", tags:["HTML"]}
+];
+
+// daily challenge pool (separate)
+const demoDaily = [
+  {id:uid(), q:"Daily: HTML is a markup language.", opts:["True","False"], ans:0, type:"tf"},
+  {id:uid(), q:"Daily: CSS 'margin' sets outer spacing.", opts:["True","False"], ans:0, type:"tf"},
+  {id:uid(), q:"Daily: console.log() is for debugging.", opts:["True","False"], ans:0, type:"tf"},
+  {id:uid(), q:"Daily: React uses a virtual DOM.", opts:["True","False"], ans:0, type:"tf"},
+  {id:uid(), q:"Daily: <section> is a semantic tag.", opts:["True","False"], ans:0, type:"tf"},
+  {id:uid(), q:"Daily MCQ: CSS to change font size?", opts:["font-size","size","text-size"], ans:0, type:"mcq"},
+  {id:uid(), q:"Daily MCQ: Tag for images?", opts:["<img>","<image>","<picture>"], ans:0, type:"mcq"},
+  {id:uid(), q:"Daily MCQ: JS keyword to define constant?", opts:["const","let","var"], ans:0, type:"mcq"},
+  {id:uid(), q:"Daily MCQ: React hook for state?", opts:["useState","useEffect","useRef"], ans:0, type:"mcq"},
+  {id:uid(), q:"Daily MCQ: CSS center horizontally with margin?", opts:["margin:0 auto","text-align:center","display:center"], ans:0, type:"mcq"}
+];
+
+/* -------------------------
+   Load or initialize localStorage
+--------------------------*/
+let users = load('lms_users', demoUsers);
+let materials = load('lms_materials', demoMaterials);
+let questions = load('lms_questions', demoQuestions);
+let dailyPool = load('lms_daily', demoDaily);
+let scores = load('lms_scores', []); // {user,score,date,type}
+let state = load('lms_state', {});   // stores current logged user id etc.
+
+/* -------------------------
+   Anti-inspect (basic)
+--------------------------*/
+document.addEventListener('contextmenu', e=> e.preventDefault());
+document.onkeydown = function(e){
+  if(e.keyCode===123) return false; // F12
+  if(e.ctrlKey && e.shiftKey && (e.keyCode===73 || e.keyCode===74)) return false; // ctrl+shift+i/j
+  if(e.ctrlKey && (e.keyCode===85 || e.keyCode===83)) return false; // ctrl+u / ctrl+s
+};
+
+/* -------------------------
+   App State & Current Session
+--------------------------*/
+let currentUser = null; // user object
+let currentQuiz = null;  // array of q objects for this attempt
+let currentQuizIndex = 0;
+let currentQuizAnswers = []; // store {qid,selected,isCorrect}
+let quizMode = 'normal'; // normal or daily
+
+/* -------------------------
+   Helpers for UI display
+--------------------------*/
+function setTopRight(html){
+  $('topRight').innerHTML = html;
+}
+function show(elementId){
+  document.querySelectorAll('[id^="section-"]').forEach(n=>n.style.display='none');
+  document.querySelectorAll('#section-quiz,#section-daily,#section-study,#section-leaderboard,#section-manageQuiz,#section-scores,#section-users,#section-export,#section-settings,#section-games').forEach(n=>n.style.display='none');
+  $(elementId).style.display='block';
+}
+function openSection(name){
+  // show appropriate section and hide others
+  if(name==='study') {
+    renderMaterials();
+    show('section-study');
+  } else if(name==='quiz') {
+    show('section-quiz');
+  } else if(name==='daily') {
+    show('section-daily');
+    renderDailyInfo();
+  } else if(name==='leaderboard') {
+    renderLeaderboard();
+    show('section-leaderboard');
+  } else if(name==='manageQuiz') {
+    renderQuestions();
+    show('section-manageQuiz');
+  } else if(name==='scores') {
+    renderScores();
+    show('section-scores');
+  } else if(name==='users') {
+    renderUsers();
+    show('section-users');
+  } else if(name==='export') {
+    show('section-export');
+  } else if(name==='settings') {
+    show('section-settings');
+  } else if(name==='games') {
+    show('section-games');
+  } else {
+    show('homeCard');
+  }
+}
+
+/* -------------------------
+   Login / Logout / Prefill demo
+--------------------------*/
+function prefillDemo(){
+  $('inputName').value = 'student1';
+  $('inputPass').value = '1234';
+  $('selectRole').value = 'student';
+}
+function handleLogin(){
+  const name = $('inputName').value.trim();
+  const pass = $('inputPass').value.trim();
+  const role = $('selectRole').value;
+  if(!name || !pass){ alert('Please enter name & password'); return; }
+  // try find existing
+  let found = users.find(u => (u.username===name && u.password===pass && u.role===role));
+  if(!found){
+    // allow sign-up for students
+    if(role==='student'){
+      if(confirm('User not found. Create new student account?')) {
+        const u = {id:uid(), username:name, password:pass, role:'student', xp:0, badges:[], streak:0, lastDaily:null};
+        users.push(u); save('lms_users', users); found = u;
+      } else return;
+    } else { alert('User not found or invalid credentials'); return; }
+  }
+  // login
+  currentUser = found;
+  state.logged = {id:found.id, time:Date.now()};
+  save('lms_state', state);
+  renderProfile();
+  applyRoleTheme(found.role);
+  setTopRight(`<div style="text-align:right"><div style="font-weight:700">${found.username}</div><div style="font-size:12px;color:#6b7280">${found.role}</div></div>`);
+  $('loginView').style.display='none'; $('profileView').style.display='block';
+  // show role menus
+  document.getElementById('studentMenu').style.display = found.role==='student'?'block':'none';
+  document.getElementById('teacherMenu').style.display = found.role==='teacher'?'block':'none';
+  document.getElementById('adminMenu').style.display = found.role==='admin'?'block':'none';
+  // welcome
+  $('welcomeHeader').innerText = `Hello, ${found.username}!`;
+  $('subHeader').innerText = (found.role==='student')?'Keep the streak alive!':'Manage content & users';
+  // show default for role
+  if(found.role==='student'){ openSection('study'); updateXPDisplay(); }
+  if(found.role==='teacher'){ openSection('manageQuiz'); }
+  if(found.role==='admin'){ openSection('users'); }
+}
+
+/* logout */
+function logout(){
+  currentUser=null; state.logged=null; save('lms_state', state);
+  $('loginView').style.display='block'; $('profileView').style.display='none';
+  document.getElementById('studentMenu').style.display = 'none';
+  document.getElementById('teacherMenu').style.display = 'none';
+  document.getElementById('adminMenu').style.display = 'none';
+  setTopRight('');
+  applyRoleTheme(); $('welcomeHeader').innerText='Welcome'; $('subHeader').innerText='Start learning full stack development';
+}
+
+/* apply role theme color */
+function applyRoleTheme(role){
+  const header = document.querySelector('.header');
+  if(!role){ header.style.background=''; document.body.style.background='linear-gradient(135deg,#e6f7ff 0%, #fff 50%)'; return; }
+  if(role==='student'){ header.style.background='linear-gradient(90deg,#10b981,#34d399)'; document.body.style.background='linear-gradient(135deg,#e6f7ff 0%, #fff 50%)'; }
+  if(role==='teacher'){ header.style.background='linear-gradient(90deg,#3b82f6,#06b6d4)'; document.body.style.background='linear-gradient(135deg,#eef2ff, #ffffff)'; }
+  if(role==='admin'){ header.style.background='linear-gradient(90deg,#8b5cf6,#ec4899)'; document.body.style.background='linear-gradient(135deg,#fff0f6,#ffffff)'; }
+}
+
+/* -------------------------
+   Materials
+--------------------------*/
+function renderMaterials(){
+  let html='';
+  if(materials.length===0) html='<div style="color:var(--muted)">No materials yet</div>';
+  materials.forEach(m=>{
+    html+=`<div class="list" style="border:1px solid #eef2ff;padding:10px;border-radius:8px;margin-bottom:8px">
+      <div style="font-weight:700">${m.title}</div>
+      <div style="margin-top:6px"><a href="${m.link}" target="_blank">${m.link}</a></div>
+    </div>`;
+  });
+  $('materialsList').innerHTML = html;
+  // teacher add control
+  $('addMaterialForm').style.display = currentUser && currentUser.role==='teacher' ? 'block' : 'none';
+}
+function saveMaterial(){
+  const title = $('matTitle').value.trim(), link = $('matLink').value.trim();
+  if(!title || !link){ alert('enter title & link'); return; }
+  materials.push({id:uid(), title, link});
+  save('lms_materials', materials);
+  $('matTitle').value=''; $('matLink').value='';
+  renderMaterials(); alert('Material saved');
+}
+
+/* -------------------------
+   Quiz logic (normal)
+--------------------------*/
+function startQuiz(){
+  if(!currentUser){ alert('Please login first'); return; }
+  // pick 10 questions randomized from pool
+  const pool = [...questions];
+  shuffle(pool);
+  currentQuiz = pool.slice(0, Math.min(10,pool.length)).map(q => JSON.parse(JSON.stringify(q)));
+  currentQuizIndex = 0; currentQuizAnswers = [];
+  quizMode='normal';
+  renderQuizQuestion();
+  $('endQuizBtn').style.display='inline-block';
+}
+function renderQuizQuestion(){
+  const cont = $('quizContainer');
+  if(!currentQuiz || currentQuizIndex>=currentQuiz.length){ cont.innerHTML = '<div style="color:var(--muted)">No question</div>'; return; }
+  const q = currentQuiz[currentQuizIndex];
+  // shuffle options for MCQ to randomize positions
+  let opts = q.opts.map((o,i)=>({o,i}));
+  if(q.type==='mcq') shuffle(opts);
+  let html = `<div style="font-weight:800">Q${currentQuizIndex+1}. ${escapeHtml(q.q)}</div>`;
+  html += `<div style="margin-top:10px">`;
+  opts.forEach((it,idx)=>{
+    const valIndex = it.i; // original index
+    html += `<div class="option" onclick="answerQuestion(${valIndex}, ${q.id?`'${q.id}'`:null})">${escapeHtml(it.o)}</div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+function answerQuestion(selectedIdx, qid){
+  const q = currentQuiz[currentQuizIndex];
+  const correct = (selectedIdx===q.ans);
+  currentQuizAnswers.push({qid:q.id, selected:selectedIdx, correct});
+  currentQuizIndex++;
+  if(currentQuizIndex>=currentQuiz.length){
+    finishQuiz();
+  } else {
+    renderQuizQuestion();
+  }
+}
+function finishQuiz(){
+  // calculate score
+  let correctCount = currentQuizAnswers.filter(a=>a.correct).length;
+  let points = 0;
+  // MCQ = 10, TF=5
+  currentQuizAnswers.forEach(a=>{
+    const q = currentQuiz.find(x=>x.id===a.qid) || questions.find(x=>x.id===a.qid);
+    if(!q) return;
+    points += (q.type==='mcq')?10:5;
+    if(!a.correct) points -= 0;
+  });
+  // add points to user xp and save score entry
+  currentUser.xp = (currentUser.xp||0)+points;
+  users = users.map(u=> u.id===currentUser.id?currentUser:u); save('lms_users', users);
+  scores.push({uid:currentUser.id, user:currentUser.username, points, correct:correctCount, total:currentQuiz.length, date:new Date().toISOString(), type:'normal'});
+  save('lms_scores', scores);
+  alert(`Quiz finished. Correct: ${correctCount}/${currentQuiz.length}. You earned ${points} XP.`);
+  $('endQuizBtn').style.display='none';
+  renderProfile(); renderLeaderboard(); renderScores();
+  openSection('study');
+}
+function endQuiz(){ // allow manual end
+  if(confirm('End quiz and submit?')) finishQuiz();
+}
+
+/* -------------------------
+   Daily challenge logic
+--------------------------*/
+function renderDailyInfo(){
+  if(!currentUser){ $('dailyInfo').innerText='Login as a student to play daily challenge'; return; }
+  // find lastDaily in user
+  const last = currentUser.lastDaily ? new Date(currentUser.lastDaily).toDateString() : null;
+  const today = new Date().toDateString();
+  const playable = last !== today;
+  $('dailyInfo').innerText = playable ? 'Daily available — good luck!' : `Daily already completed today. Your streak: ${currentUser.streak||0}`;
+}
+function startDaily(){
+  if(!currentUser){ alert('Login to play daily challenge'); return; }
+  const last = currentUser.lastDaily ? new Date(currentUser.lastDaily).toDateString() : null;
+  const today = new Date().toDateString();
+  if(last===today){ alert('You already completed the daily challenge today. Come back tomorrow!'); return; }
+  // pick 5 from dailyPool
+  let pool = [...dailyPool]; shuffle(pool); const dailySet = pool.slice(0, Math.min(5,pool.length));
+  currentQuiz = dailySet.map(q=> JSON.parse(JSON.stringify(q))); currentQuizIndex=0; quizMode='daily'; currentQuizAnswers=[];
+  renderDailyQuestion();
+}
+function renderDailyQuestion(){
+  const cont = $('dailyContainer');
+  if(!currentQuiz || currentQuizIndex>=currentQuiz.length){ cont.innerHTML = '<div style="color:var(--muted)">No daily question</div>'; return; }
+  const q = currentQuiz[currentQuizIndex];
+  let opts = q.opts.map((o,i)=>({o,i}));
+  if(q.type==='mcq') shuffle(opts);
+  let html = `<div style="font-weight:800">Daily Q${currentQuizIndex+1}. ${escapeHtml(q.q)}</div>`;
+  html += `<div style="margin-top:10px">`;
+  opts.forEach(it=>{
+    html += `<div class="option" onclick="answerDaily(${it.i},'${q.id}')">${escapeHtml(it.o)}</div>`;
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+function answerDaily(selectedIdx, qid){
+  const q = currentQuiz[currentQuizIndex];
+  const correct = (selectedIdx===q.ans);
+  currentQuizAnswers.push({qid:q.id, selected:selectedIdx, correct});
+  currentQuizIndex++;
+  if(currentQuizIndex>=currentQuiz.length) finishDaily();
+  else renderDailyQuestion();
+}
+function finishDaily(){
+  let correctCount = currentQuizAnswers.filter(a=>a.correct).length;
+  let points = currentQuizAnswers.reduce((sum,a)=>{
+    const q = currentQuiz.find(x=>x.id===a.qid) || dailyPool.find(x=>x.id===a.qid);
+    return sum + ((q.type==='mcq')?10:5);
+  },0);
+  // bonus for perfect
+  if(correctCount===currentQuiz.length) points += 20;
+  // streak update
+  const yesterday = (d=>{d.setDate(d.getDate()-1); return d})(new Date());
+  const last = currentUser.lastDaily ? new Date(currentUser.lastDaily) : null;
+  if(last && last.toDateString() === yesterday.toDateString()){
+    currentUser.streak = (currentUser.streak||0)+1;
+  } else {
+    currentUser.streak = 1;
+  }
+  currentUser.lastDaily = new Date().toISOString();
+  currentUser.xp = (currentUser.xp||0)+points;
+  users = users.map(u=> u.id===currentUser.id?currentUser:u); save('lms_users', users);
+  scores.push({uid:currentUser.id, user:currentUser.username, points, correct:correctCount, total:currentQuiz.length, date:new Date().toISOString(), type:'daily'});
+  save('lms_scores', scores);
+  alert(`Daily done! Correct ${correctCount}/${currentQuiz.length}. Earned ${points} XP. Streak: ${currentUser.streak}`);
+  renderProfile(); renderLeaderboard(); openSection('study');
+}
+
+/* -------------------------
+   Leaderboard & Scores
+--------------------------*/
+function renderLeaderboard(){
+  // aggregate xp from users
+  const sorted = [...users].filter(u=>u.role==='student').sort((a,b)=> (b.xp||0)-(a.xp||0));
+  let html = '<ol>';
+  sorted.forEach(s=> html += `<li style="padding:8px 0"><strong>${s.username}</strong> — ${s.xp||0} XP</li>`);
+  html += '</ol>';
+  $('leaderboardList').innerHTML = html;
+}
+function renderScores(){
+  // show recent scores
+  const recent = [...scores].slice(-30).reverse();
+  let html = '<table style="width:100%;border-collapse:collapse"><tr><th>User</th><th>Points</th><th>Type</th><th>Date</th></tr>';
+  recent.forEach(r=> html+=`<tr><td>${r.user}</td><td>${r.points}</td><td>${r.type}</td><td>${new Date(r.date).toLocaleString()}</td></tr>`);
+  html += '</table>';
+  $('scoresList').innerHTML = html;
+}
+
+/* -------------------------
+   Teacher: Manage Questions
+--------------------------*/
+function showAddQuestion(){ $('addQuestionForm').style.display='block'; }
+function addQuestion(){
+  const qText = $('qText').value.trim();
+  const a = $('optA').value.trim(), b=$('optB').value.trim(), c=$('optC').value.trim();
+  const type = $('qType').value;
+  let opts = type==='tf'?['True','False']:[a,b,c];
+  const ans = parseInt($('correctIdx').value);
+  if(!qText || opts.some(x=>!x) && type!=='tf'){ alert('Please fill question and options'); return; }
+  if(isNaN(ans) || ans<0 || ans>=opts.length){ alert('Correct index invalid'); return; }
+  const newQ = {id:uid(), q:qText, opts, ans, type};
+  questions.push(newQ); save('lms_questions', questions);
+  $('qText').value='';$('optA').value='';$('optB').value='';$('optC').value='';$('correctIdx').value='';
+  $('addQuestionForm').style.display='none';
+  renderQuestions();
+  alert('Question added');
+}
+function renderQuestions(){
+  if(questions.length===0) $('questionsList').innerHTML='<div style="color:var(--muted)">No questions yet</div>';
+  else {
+    let html = '<ul class="list">';
+    questions.forEach((q,idx)=> html += `<li><div style="font-weight:700">${escapeHtml(q.q)}</div><div style="margin-top:6px">Type: ${q.type.toUpperCase()} — Options: ${q.opts.join(' | ')}</div><div style="margin-top:6px"><button class="small-btn" onclick="deleteQuestion('${q.id}')">Delete</button></div></li>`);
+    html += '</ul>';
+    $('questionsList').innerHTML = html;
+  }
+}
+function deleteQuestion(id){
+  if(!confirm('Delete this question?')) return;
+  questions = questions.filter(q=>q.id!==id); save('lms_questions', questions);
+  renderQuestions();
+}
+
+/* -------------------------
+   Admin: Users & Export
+--------------------------*/
+function renderUsers(){
+  let html = '<table style="width:100%;border-collapse:collapse"><tr><th>Username</th><th>Role</th><th>XP</th><th>Actions</th></tr>';
+  users.forEach(u=> html += `<tr><td>${u.username}</td><td>${u.role}</td><td>${u.xp||0}</td><td><button class="small-btn" onclick="deleteUser('${u.id}')">Delete</button></td></tr>`);
+  html += '</table>';
+  $('usersList').innerHTML = html;
+}
+function addUser(){
+  const name = $('newUsrName').value.trim(); const role = $('newUsrRole').value; const pass = $('newUsrPass').value.trim();
+  if(!name || !pass){ alert('enter username & password'); return; }
+  users.push({id:uid(), username:name, password:pass, role, xp:0, badges:[]}); save('lms_users', users); renderUsers();
+  $('newUsrName').value='';$('newUsrPass').value='';
+}
+function deleteUser(id){ if(!confirm('Delete user?')) return; users = users.filter(u=>u.id!==id); save('lms_users', users); renderUsers(); }
+
+function exportCSV(){
+  // export questions & scores
+  let text = 'Questions (id,question,type,options,answer)\\n';
+  questions.forEach(q=> text += `${q.id},"${q.q.replace(/"/g,'""')}",${q.type},"${q.opts.join('|').replace(/"/g,'""')}",${q.ans}\\n`);
+  text += '\\nScores (user,points,type,date)\\n';
+  scores.forEach(s=> text += `${s.user},${s.points},${s.type},${s.date}\\n`);
+  const blob = new Blob([text], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='lms_export.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+/* -------------------------
+   Games: Memory Match & Code Scramble
+--------------------------*/
+function openGame(which){
+  $('gameArea').innerHTML='';
+  if(which==='memory') startMemory();
+  if(which==='codescramble') startCodeScramble();
+}
+function startMemory(){
+  const terms = ['HTML','CSS','JS','React','Node','SQL','API','Git'];
+  const pool = [...terms, ...terms].slice(0,16);
+  shuffle(pool);
+  let html = '<div class="memory-grid">';
+  pool.forEach((t,i)=> html += `<div class="tile" data-term="${t}" onclick="flipTile(this,${i})">?</div>`);
+  html += '</div>';
+  $('gameArea').innerHTML = html;
+  window.memoryState = {tiles:document.querySelectorAll('.tile'), first:null, second:null, matched:0};
+}
+function flipTile(el,i){
+  if(!window.memoryState) return;
+  if(el.classList.contains('matched') || el===window.memoryState.first) return;
+  el.innerText = el.dataset.term;
+  if(!window.memoryState.first){ window.memoryState.first=el; return; }
+  window.memoryState.second = el;
+  if(window.memoryState.first.dataset.term === window.memoryState.second.dataset.term){
+    window.memoryState.first.classList.add('matched'); window.memoryState.second.classList.add('matched');
+    window.memoryState.matched += 2;
+    if(window.memoryState.matched >= window.memoryState.tiles.length) {
+      // reward XP
+      if(currentUser){ currentUser.xp = (currentUser.xp||0) + 20; users = users.map(u=>u.id===currentUser.id?currentUser:u); save('lms_users', users); alert('Great! You matched all pairs — +20 XP'); renderProfile(); renderLeaderboard(); }
+    }
+  } else {
+    setTimeout(()=>{ window.memoryState.first.innerText='?'; window.memoryState.second.innerText='?'; window.memoryState.first=null; window.memoryState.second=null; }, 800);
+  }
+}
+function startCodeScramble(){
+  const snippets = [
+    {code:`function greet(){\\n  console.log('Hello')\\n}`, scrambled:[
+      "console.log('Hello')",
+      "function greet(){",
+      "}"
+    ]},
+    {code:`const add=(a,b)=>a+b;`, scrambled:[
+      "const add=(a,b)=>a+b;"
+    ]}
+  ];
+  const pick = snippets[Math.floor(Math.random()*snippets.length)];
+  const lines = [...pick.scrambled]; shuffle(lines);
+  let html = `<div style="color:var(--muted);margin-bottom:8px">Reorder the lines to form correct code:</div><div id="scrambleLines">`;
+  lines.forEach((l,idx)=> html += `<div class="list" draggable="true" ondragstart="dragStart(event,${idx})" ondragover="allowDrop(event)" ondrop="dropLine(event,${idx})">${escapeHtml(l)}</div>`);
+  html += `</div><button class="small-btn" onclick="checkScramble()">Check</button>`;
+  $('gameArea').innerHTML = html;
+  window.scrambleState = {target:pick.code.replace(/\\n/g,'\\n') };
+}
+function dragStart(ev,idx){ ev.dataTransfer.setData('text/plain', idx); }
+function allowDrop(ev){ ev.preventDefault(); }
+function dropLine(ev,idx){
+  ev.preventDefault();
+  const from = ev.dataTransfer.getData('text/plain'); const lines = Array.from(document.querySelectorAll('#scrambleLines .list'));
+  const fromEl = lines[from]; const toEl = lines[idx];
+  const parent = document.querySelector('#scrambleLines');
+  parent.insertBefore(fromEl, toEl);
+}
+function checkScramble(){
+  const arranged = Array.from(document.querySelectorAll('#scrambleLines .list')).map(d=>d.innerText).join('\\n');
+  if(window.scrambleState && arranged.trim()===window.scrambleState.target.trim()){
+    alert('Nice! Correct code. +25 XP');
+    if(currentUser){ currentUser.xp=(currentUser.xp||0)+25; users = users.map(u=>u.id===currentUser.id?currentUser:u); save('lms_users', users); renderProfile(); renderLeaderboard(); }
+  } else {
+    alert('Not correct yet, try again.');
+  }
+}
+
+/* -------------------------
+   Utility: XPs, Badges & Profile render
+--------------------------*/
+function renderProfile(){
+  if(!currentUser) return;
+  $('displayName').innerText = currentUser.username;
+  $('displayRole').innerText = currentUser.role;
+  // xp bar
+  const xp = currentUser.xp || 0; const pct = Math.min(100, (xp % 200) / 2); // fake level calc
+  $('xpFill').style.width = pct+'%'; $('xpFill').innerText = `${xp} XP`;
+  // badges based on thresholds
+  const badgesDiv = $('badges'); badgesDiv.innerHTML='';
+  if(xp>=50) badgesDiv.innerHTML += `<div class="badge" style="background:#fde68a;padding:6px;border-radius:6px">🎯 Beginner</div>`;
+  if(xp>=150) badgesDiv.innerHTML += `<div class="badge" style="background:#c7f9e1;padding:6px;border-radius:6px">🚀 Advanced</div>`;
+  if(currentUser.streak && currentUser.streak>=5) badgesDiv.innerHTML += `<div class="badge" style="background:#ffd6e0;padding:6px;border-radius:6px">🔥 Streak ${currentUser.streak}</div>`;
+  // persist users
+  users = users.map(u=> u.id===currentUser.id?currentUser:u); save('lms_users', users);
+}
+
+/* -------------------------
+   Misc & Helpers
+--------------------------*/
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]] } return arr; }
+function escapeHtml(str){ return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* -------------------------
+   Render initial UI and persist data
+--------------------------*/
+save('lms_users', users); save('lms_materials', materials); save('lms_questions', questions); save('lms_daily', dailyPool); save('lms_scores', scores);
+
+// restore logged in if present
+if(state.logged){
+  const lu = users.find(u=>u.id===state.logged.id);
+  if(lu){ currentUser = lu; $('loginView').style.display='none'; $('profileView').style.display='block'; applyRoleTheme(lu.role); setTopRight(`<div style="text-align:right"><div style="font-weight:700">${lu.username}</div><div style="font-size:12px;color:#6b7280">${lu.role}</div></div>`); document.getElementById('studentMenu').style.display = lu.role==='student'?'block':'none'; document.getElementById('teacherMenu').style.display = lu.role==='teacher'?'block':'none'; document.getElementById('adminMenu').style.display = lu.role==='admin'?'block':'none'; $('welcomeHeader').innerText = `Hello, ${lu.username}!`; $('subHeader').innerText = (lu.role==='student')?'Keep the streak alive!':'Manage content & users'; renderProfile(); openSection(lu.role==='student'?'study':(lu.role==='teacher'?'manageQuiz':'users'));
+  }
+} else {
+  // show demo prompt
+}
+
+/* -------------------------
+   Reset demo / utility functions
+--------------------------*/
+function resetAll(){
+  if(!confirm('Reset demo data to initial state?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+/* -------------------------
+   End of app script
+--------------------------*/
+</script>
+</body>
+</html>
